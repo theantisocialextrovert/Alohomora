@@ -3,6 +3,7 @@ from scapy.all import *
 from threading import Thread
 import pandas
 import time
+import json
 import os
 
 class packet_sniffer:
@@ -12,10 +13,8 @@ class packet_sniffer:
     index        = 0 
     channel_flag = True
     display_flag = True
-    network_info = []
-    target_bssid = None
-    target_ssid  = None
-    target_index = None
+    ap_list      = []
+    target_ap_info={}
 
     def __init__(self):
         # initialize the networks dataframe that will contain all access points nearby
@@ -28,17 +27,15 @@ class packet_sniffer:
         channel = 1
         while self.channel_flag:
             time.sleep(1)
-            print "current channel = ",channel
             os.system('iwconfig %s channel %d' % (self.interface, channel))
             next_channel = int(random.random() * 14)
-            print "next_channel = ",next_channel
 
             if next_channel != 0 and channel != next_channel:
                 channel = next_channel
+    
     def display_networks(self):
         while self.display_flag:
             os.system("clear")
-            print "flag = ", self.networks.empty
             print(self.networks)
             print "\n\n[-] enter CTRL + C to stop sniffing\n"
             time.sleep(1)
@@ -59,18 +56,14 @@ class packet_sniffer:
             channel = stats.get("channel")
             # gettng the crypto
             crypto = stats.get("crypto")
-            if bssid not in self.network_info or len(self.network_info) == 0:
+            if bssid not in self.ap_list or len(self.ap_list) == 0:
                 self.index+=1
                 self.networks.loc[bssid] = (ssid, dbm_signal, channel, crypto,self.index)
-                self.network_info.append(bssid)
-                print "added new network === ", self.network_info
+                self.ap_list.append(bssid)
 
-    def configure_hostpad(self):
-        os.system("rm /conf/temp.conf")
-        with open("temp.conf",'w') as hostpad_conf:
-            hostpad_conf.write("interface=wlan0mon\n")
-            hostpad_conf.write("driver=nl80211\n")
-            hostpad_conf.write("ssid=temp\n")
+    def store_targetAP_info(self):
+        with open("ap_info_json/target_ap.json",'w') as outfile:
+            json.dump(self.target_ap_info, outfile)
 
 
     def start(self):
@@ -93,17 +86,33 @@ class packet_sniffer:
         
         # configuring and starting the sniffer
         sniff(prn=self.sniffer_method, iface="wlan0mon", monitor=True, timeout = timeout_time)
-        
+
         # flags to stop the display and channel deamons
         self.channel_flag = False
         self.display_flag = False
-
+        time.sleep(2)
+        
+        if self.networks.empty:
+            print "[!!] No AP detected, exiting. . ."
+            return
         # selecting the target ap from the available APs
-        index        = int(raw_input("[-] enter the index of victim AP\n"))
-        self.target_ssid  = self.networks.iloc[index-1]['SSID']
-        print "df == == == ", self.networks.iloc[index-1]       
-        self.target_bssid = self.network_info[index-1]
-        print "targetbssid == ",self.target_bssid, " target_ssid = ",self.target_ssid
+        index = None
+        while True:
+            index        = int(raw_input("[-] enter the index of victim AP\n[->] "))
+            if index > len(self.ap_list) or index <= 0:
+                print "\n[ERROR] wrong input, enter again\n"
+            else:
+                break
+        
+        # extrating and storing the AP info into json
+        target_ssid  = self.networks.iloc[index-1]['SSID']
+        target_bssid = self.ap_list[index-1]
+
+        print "[-] target AP's bssid: ",target_bssid, "\n[-] target AP's ssid : ",target_ssid
+        self.target_ap_info['bssid'] = target_bssid
+        self.target_ap_info['ssid']  = target_ssid
+        self.target_ap_info['index'] = index
+        self.store_targetAP_info()
         
      
 if __name__ == "__main__":
