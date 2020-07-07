@@ -1,6 +1,10 @@
 # Alohomora
 ** *this project is purely for educational purpose* **
-this tool can be used for cracking wifi password, the way it works is,
+
+
+this tool can be used for cracking wifi password,
+
+the way it works is,
 1. sniff the network for beacon packets and collect the info about the target ap, this is done with p_sniffer.py
 2. once we have the info about the victim/target ap, we are going to capture the 4-way handshake,
 for this I've used an active method, rather than waiting for the clients to reconnect, actively dauth packets are
