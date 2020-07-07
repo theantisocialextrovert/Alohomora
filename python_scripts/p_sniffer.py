@@ -105,13 +105,15 @@ class packet_sniffer:
                 break
         
         # extrating and storing the AP info into json
-        target_ssid  = self.networks.iloc[index-1]['SSID']
-        target_bssid = self.ap_list[index-1]
+        target_ssid    = self.networks.iloc[index-1]['SSID']
+        target_bssid   = self.ap_list[index-1]
+        target_channel = self.networks.iloc[index-1]['Channel']
 
         print "[-] target AP's bssid: ",target_bssid, "\n[-] target AP's ssid : ",target_ssid
-        self.target_ap_info['bssid'] = target_bssid
-        self.target_ap_info['ssid']  = target_ssid
-        self.target_ap_info['index'] = index
+        self.target_ap_info['bssid']   = target_bssid
+        self.target_ap_info['ssid']    = target_ssid
+        self.target_ap_info['channel'] = target_channel
+        self.target_ap_info['index']   = index
         self.store_targetAP_info()
         
      

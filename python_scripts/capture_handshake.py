@@ -4,8 +4,9 @@ import os
 import json
 
 def capture_handshake(AP_info):
-    target_bssid = str(AP_info['bssid'])
-    os.system('airodump-ng wlan0mon --bssid %s --write handshake --output-format cap' % (target_bssid))
+    target_bssid   = str(AP_info['bssid'])
+    target_channel = int(AP_info['channel'])
+    os.system('airodump-ng wlan0mon --bssid %s --channel %d --write handshake --output-format cap' % (target_bssid,target_channel))
 
 if __name__ == "__main__":
     try:
